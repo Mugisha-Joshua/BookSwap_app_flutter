@@ -22,11 +22,15 @@ class BookService {
     return _firestore
         .collection('books')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookListing.fromMap(doc.id, doc.data()))
-            .toList());
+        .map((snapshot) {
+          final books = snapshot.docs
+              .map((doc) => BookListing.fromMap(doc.id, doc.data()))
+              .toList();
+          // Sort by createdAt in memory to avoid composite index requirement
+          books.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return books;
+        });
   }
 
   Future<void> deleteBook(String bookId) async {

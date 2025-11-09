@@ -1,7 +1,11 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/book_listing.dart';
 import '../services/book_service.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class PostBookScreen extends StatefulWidget {
@@ -16,10 +20,13 @@ class _PostBookScreenState extends State<PostBookScreen> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _swapForController = TextEditingController();
+  final _imagePicker = ImagePicker();
+  final _storageService = StorageService();
   String _selectedCondition = 'Used';
   final List<String> _conditions = ['New', 'Like New', 'Good', 'Used'];
   final _bookService = BookService();
   bool _isLoading = false;
+  XFile? _selectedImage;
 
   @override
   void dispose() {
@@ -27,6 +34,29 @@ class _PostBookScreenState extends State<PostBookScreen> {
     _authorController.dispose();
     _swapForController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _submitForm() async {
@@ -49,6 +79,20 @@ class _PostBookScreenState extends State<PostBookScreen> {
         return;
       }
 
+      String? imageUrl;
+      if (_selectedImage != null) {
+        imageUrl = await _storageService.uploadBookCover(_selectedImage!);
+        if (imageUrl == null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error uploading image')),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
       final book = BookListing(
         id: '',
         title: _titleController.text.trim(),
@@ -58,6 +102,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
         userId: user.uid,
         userName: user.displayName ?? 'Anonymous',
         createdAt: DateTime.now(),
+        imageUrl: imageUrl,
       );
 
       await _bookService.addBook(book);
@@ -83,6 +128,62 @@ class _PostBookScreenState extends State<PostBookScreen> {
     }
   }
 
+  Widget _buildImagePreview() {
+    if (_selectedImage == null) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.add_photo_alternate,
+            size: 48,
+            color: AppTheme.darkBlue.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap to add book cover',
+            style: TextStyle(
+              color: AppTheme.textLight,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // For web, use Image.network with the path (blob URL)
+    // For mobile, use Image.file
+    if (kIsWeb) {
+      return Image.network(
+        _selectedImage!.path,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.red.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Error loading image',
+                style: TextStyle(color: Colors.red),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      return Image.file(
+        File(_selectedImage!.path),
+        fit: BoxFit.cover,
+        width: double.infinity,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,6 +202,26 @@ class _PostBookScreenState extends State<PostBookScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Book Cover Image
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: AppTheme.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.darkBlue.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildImagePreview(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -212,4 +333,3 @@ class _PostBookScreenState extends State<PostBookScreen> {
     );
   }
 }
-

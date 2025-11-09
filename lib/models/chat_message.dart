@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ChatMessage {
   final String id;
   final String chatId;
@@ -21,18 +23,19 @@ class ChatMessage {
       'senderId': senderId,
       'senderName': senderName,
       'text': text,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': Timestamp.fromDate(timestamp),
     };
   }
 
   factory ChatMessage.fromMap(String id, Map<String, dynamic> map) {
+    Timestamp timestamp = map['timestamp'] as Timestamp? ?? Timestamp.now();
     return ChatMessage(
       id: id,
       chatId: map['chatId'] ?? '',
       senderId: map['senderId'] ?? '',
       senderName: map['senderName'] ?? '',
       text: map['text'] ?? '',
-      timestamp: DateTime.parse(map['timestamp'] ?? DateTime.now().toIso8601String()),
+      timestamp: timestamp.toDate(),
     );
   }
 }

@@ -87,11 +87,26 @@ class MyListingsScreen extends StatelessWidget {
                           color: AppTheme.darkBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Icon(
-                          Icons.book,
-                          size: 30,
-                          color: AppTheme.darkBlue,
-                        ),
+                        child: book.imageUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.network(
+                                  book.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.book,
+                                      size: 30,
+                                      color: AppTheme.darkBlue,
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(
+                                Icons.book,
+                                size: 30,
+                                color: AppTheme.darkBlue,
+                              ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

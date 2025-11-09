@@ -31,7 +31,7 @@ class ChatService {
     // Update chat metadata with both participants
     await _firestore.collection('chats').doc(message.chatId).set({
       'lastMessage': message.text,
-      'lastMessageTime': message.timestamp.toIso8601String(),
+      'lastMessageTime': Timestamp.fromDate(message.timestamp),
       'participants': [message.senderId, otherUserId],
     }, SetOptions(merge: true));
   }
@@ -40,16 +40,27 @@ class ChatService {
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: userId)
-        .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              return <String, dynamic>{
-                'chatId': doc.id,
-                'lastMessage': data['lastMessage'] ?? '',
-                'lastMessageTime': data['lastMessageTime'],
-              };
-            }).toList());
+        .map((snapshot) {
+          final chats = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return <String, dynamic>{
+              'chatId': doc.id,
+              'lastMessage': data['lastMessage'] ?? '',
+              'lastMessageTime': data['lastMessageTime'],
+            };
+          }).toList();
+          // Sort by lastMessageTime in memory to avoid composite index requirement
+          chats.sort((a, b) {
+            final timeA = a['lastMessageTime'] as Timestamp?;
+            final timeB = b['lastMessageTime'] as Timestamp?;
+            if (timeA == null && timeB == null) return 0;
+            if (timeA == null) return 1;
+            if (timeB == null) return -1;
+            return timeB.compareTo(timeA);
+          });
+          return chats;
+        });
   }
 }
 
