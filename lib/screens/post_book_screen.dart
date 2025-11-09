@@ -1,11 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../models/book_listing.dart';
 import '../services/book_service.dart';
-import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class PostBookScreen extends StatefulWidget {
@@ -23,12 +24,12 @@ class _PostBookScreenState extends State<PostBookScreen> {
   final _authorController = TextEditingController();
   final _swapForController = TextEditingController();
   final _imagePicker = ImagePicker();
-  final _storageService = StorageService();
   String _selectedCondition = 'Used';
   final List<String> _conditions = ['New', 'Like New', 'Good', 'Used'];
   final _bookService = BookService();
   bool _isLoading = false;
-  XFile? _selectedImage;
+  bool _isUploading = false;
+  String? _imageBase64;
 
   @override
   void initState() {
@@ -50,25 +51,40 @@ class _PostBookScreenState extends State<PostBookScreen> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
+    final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
 
-      if (image != null) {
-        setState(() {
-          _selectedImage = image;
-        });
+    setState(() => _isUploading = true);
+
+    try {
+      String base64Image;
+
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        base64Image = base64Encode(bytes);
+      } else {
+        final file = File(picked.path);
+        final compressed = await FlutterImageCompress.compressAndGetFile(
+          file.path,
+          '${file.path}_compressed.jpg',
+          quality: 70,
+          minWidth: 800,
+          minHeight: 800,
+        );
+        base64Image = base64Encode(await compressed!.readAsBytes());
       }
+
+      setState(() {
+        _imageBase64 = base64Image;
+        _isUploading = false;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+          const SnackBar(content: Text('Image upload failed')),
         );
       }
+      setState(() => _isUploading = false);
     }
   }
 
@@ -92,46 +108,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
         return;
       }
 
-      String? imageUrl;
-      if (_selectedImage != null) {
-        try {
-          imageUrl = await _storageService.uploadBookCover(_selectedImage!);
-          if (imageUrl == null) {
-            throw Exception('Failed to upload image');
-          }
-        } catch (e) {
-          if (mounted) {
-            final continueWithoutImage = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Image Upload Failed'),
-                content: Text('Error: $e\n\nWould you like to post the book without an image?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Continue'),
-                  ),
-                ],
-              ),
-            );
-            
-            if (continueWithoutImage != true) {
-              setState(() {
-                _isLoading = false;
-              });
-              return;
-            }
-            // Continue without image
-            imageUrl = null;
-          } else {
-            return;
-          }
-        }
-      }
+
 
       if (widget.bookToEdit != null) {
         // Update existing book
@@ -144,7 +121,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
           userId: user.uid,
           userName: user.displayName ?? 'Anonymous',
           createdAt: widget.bookToEdit!.createdAt,
-          imageUrl: imageUrl ?? widget.bookToEdit!.imageUrl,
+          imageUrl: _imageBase64 ?? widget.bookToEdit!.imageUrl,
           status: widget.bookToEdit!.status,
         );
         await _bookService.updateBook(widget.bookToEdit!.id, updatedBook);
@@ -159,7 +136,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
           userId: user.uid,
           userName: user.displayName ?? 'Anonymous',
           createdAt: DateTime.now(),
-          imageUrl: imageUrl,
+          imageUrl: _imageBase64,
         );
         await _bookService.addBook(book);
       }
@@ -190,7 +167,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
   }
 
   Widget _buildImagePreview() {
-    if (_selectedImage == null) {
+    if (_imageBase64 == null || _imageBase64!.isEmpty) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -211,38 +188,11 @@ class _PostBookScreenState extends State<PostBookScreen> {
       );
     }
 
-    // For web, use Image.network with the path (blob URL)
-    // For mobile, use Image.file
-    if (kIsWeb) {
-      return Image.network(
-        _selectedImage!.path,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Colors.red.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Error loading image',
-                style: TextStyle(color: Colors.red),
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      return Image.file(
-        File(_selectedImage!.path),
-        fit: BoxFit.cover,
-        width: double.infinity,
-      );
-    }
+    return Image.memory(
+      base64Decode(_imageBase64!),
+      fit: BoxFit.cover,
+      width: double.infinity,
+    );
   }
 
   @override

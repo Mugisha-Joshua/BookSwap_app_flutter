@@ -23,31 +23,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     try {
       final userCredential = await _authService.signInWithGoogle();
       if (userCredential != null && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
-        );
+        // Success - AuthWrapper will handle navigation
       } else if (mounted) {
-        // User canceled, don't show error
+        // User canceled
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Error signing in';
-        if (e.toString().contains('popup')) {
-          errorMessage = 'Please allow popups for this site';
-        } else if (e.toString().contains('cancelled')) {
-          errorMessage = 'Sign in cancelled';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
         setState(() {
           _isLoading = false;
         });

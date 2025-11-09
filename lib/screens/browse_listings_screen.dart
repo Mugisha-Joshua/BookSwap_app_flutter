@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -117,12 +118,19 @@ class BrowseListingsScreen extends StatelessWidget {
                           color: AppTheme.darkBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: book.imageUrl != null
+                        child: book.imageUrl != null && book.imageUrl!.isNotEmpty
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
-                                child: Image.network(
-                                  book.imageUrl!,
+                                child: Image.memory(
+                                  base64Decode(book.imageUrl!),
                                   fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.book,
+                                      size: 30,
+                                      color: AppTheme.darkBlue,
+                                    );
+                                  },
                                 ),
                               )
                             : const Icon(

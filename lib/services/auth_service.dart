@@ -21,6 +21,7 @@ class AuthService {
       if (kIsWeb) {
         // Web: Use popup sign-in
         GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
         userCredential = await _auth.signInWithPopup(googleProvider);
       } else {
         // Mobile: Use google_sign_in package
@@ -47,6 +48,7 @@ class AuthService {
           'email': userCredential.user!.email,
           'displayName': userCredential.user!.displayName,
           'photoURL': userCredential.user!.photoURL,
+          'emailVerified': true,
           'createdAt': FieldValue.serverTimestamp(),
           'lastLogin': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -54,7 +56,7 @@ class AuthService {
 
       return userCredential;
     } catch (e) {
-      rethrow;
+      return null;
     }
   }
 

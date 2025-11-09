@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/book_listing.dart';
 import '../models/swap_offer.dart';
-import '../services/book_service.dart';
 import '../services/swap_service.dart';
 
 class AppState extends ChangeNotifier {
