@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../models/book_listing.dart';
 import '../services/book_service.dart';
-import '../services/swap_service.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import 'chat_screen.dart';
 
@@ -27,9 +28,8 @@ class BrowseListingsScreen extends StatelessWidget {
       return;
     }
 
-    final swapService = SwapService();
     try {
-      await swapService.createSwapOffer(book, book.userId, book.userName);
+      await context.read<AppState>().createSwapOffer(book, book.userId, book.userName);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -79,7 +79,8 @@ class BrowseListingsScreen extends StatelessWidget {
             );
           }
 
-          final books = snapshot.data ?? [];
+          final allBooks = snapshot.data ?? [];
+          final books = allBooks.where((book) => book.status == 'available').toList();
 
           if (books.isEmpty) {
             return const Center(

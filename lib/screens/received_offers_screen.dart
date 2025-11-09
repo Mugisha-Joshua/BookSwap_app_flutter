@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../models/swap_offer.dart';
 import '../services/swap_service.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import 'chat_screen.dart';
 
@@ -147,7 +149,7 @@ class ReceivedOffersScreen extends StatelessWidget {
                             child: ElevatedButton(
                               onPressed: () async {
                                 try {
-                                  await swapService.acceptOffer(offer.id, offer.bookId);
+                                  await context.read<AppState>().respondToOffer(offer.id, true);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -179,7 +181,7 @@ class ReceivedOffersScreen extends StatelessWidget {
                             child: OutlinedButton(
                               onPressed: () async {
                                 try {
-                                  await swapService.rejectOffer(offer.id, offer.bookId);
+                                  await context.read<AppState>().respondToOffer(offer.id, false);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(

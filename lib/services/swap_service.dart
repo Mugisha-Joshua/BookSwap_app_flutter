@@ -108,5 +108,19 @@ class SwapService {
 
     await batch.commit();
   }
+
+  Future<void> respondToOffer(String offerId, bool accept) async {
+    final offerDoc = await _firestore.collection('swapOffers').doc(offerId).get();
+    if (!offerDoc.exists) throw Exception('Offer not found');
+    
+    final offerData = offerDoc.data()!;
+    final bookId = offerData['bookId'] as String;
+    
+    if (accept) {
+      await acceptOffer(offerId, bookId);
+    } else {
+      await rejectOffer(offerId, bookId);
+    }
+  }
 }
 

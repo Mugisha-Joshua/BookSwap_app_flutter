@@ -9,7 +9,9 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 
 class PostBookScreen extends StatefulWidget {
-  const PostBookScreen({super.key});
+  final BookListing? bookToEdit;
+  
+  const PostBookScreen({super.key, this.bookToEdit});
 
   @override
   State<PostBookScreen> createState() => _PostBookScreenState();
@@ -27,6 +29,17 @@ class _PostBookScreenState extends State<PostBookScreen> {
   final _bookService = BookService();
   bool _isLoading = false;
   XFile? _selectedImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.bookToEdit != null) {
+      _titleController.text = widget.bookToEdit!.title;
+      _authorController.text = widget.bookToEdit!.author;
+      _swapForController.text = widget.bookToEdit!.swapFor;
+      _selectedCondition = widget.bookToEdit!.condition;
+    }
+  }
 
   @override
   void dispose() {
@@ -81,35 +94,83 @@ class _PostBookScreenState extends State<PostBookScreen> {
 
       String? imageUrl;
       if (_selectedImage != null) {
-        imageUrl = await _storageService.uploadBookCover(_selectedImage!);
-        if (imageUrl == null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error uploading image')),
-          );
-          setState(() {
-            _isLoading = false;
-          });
-          return;
+        try {
+          imageUrl = await _storageService.uploadBookCover(_selectedImage!);
+          if (imageUrl == null) {
+            throw Exception('Failed to upload image');
+          }
+        } catch (e) {
+          if (mounted) {
+            final continueWithoutImage = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Image Upload Failed'),
+                content: Text('Error: $e\n\nWould you like to post the book without an image?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Continue'),
+                  ),
+                ],
+              ),
+            );
+            
+            if (continueWithoutImage != true) {
+              setState(() {
+                _isLoading = false;
+              });
+              return;
+            }
+            // Continue without image
+            imageUrl = null;
+          } else {
+            return;
+          }
         }
       }
 
-      final book = BookListing(
-        id: '',
-        title: _titleController.text.trim(),
-        author: _authorController.text.trim(),
-        swapFor: _swapForController.text.trim(),
-        condition: _selectedCondition,
-        userId: user.uid,
-        userName: user.displayName ?? 'Anonymous',
-        createdAt: DateTime.now(),
-        imageUrl: imageUrl,
-      );
-
-      await _bookService.addBook(book);
+      if (widget.bookToEdit != null) {
+        // Update existing book
+        final updatedBook = BookListing(
+          id: widget.bookToEdit!.id,
+          title: _titleController.text.trim(),
+          author: _authorController.text.trim(),
+          swapFor: _swapForController.text.trim(),
+          condition: _selectedCondition,
+          userId: user.uid,
+          userName: user.displayName ?? 'Anonymous',
+          createdAt: widget.bookToEdit!.createdAt,
+          imageUrl: imageUrl ?? widget.bookToEdit!.imageUrl,
+          status: widget.bookToEdit!.status,
+        );
+        await _bookService.updateBook(widget.bookToEdit!.id, updatedBook);
+      } else {
+        // Add new book
+        final book = BookListing(
+          id: '',
+          title: _titleController.text.trim(),
+          author: _authorController.text.trim(),
+          swapFor: _swapForController.text.trim(),
+          condition: _selectedCondition,
+          userId: user.uid,
+          userName: user.displayName ?? 'Anonymous',
+          createdAt: DateTime.now(),
+          imageUrl: imageUrl,
+        );
+        await _bookService.addBook(book);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Book posted successfully!')),
+          SnackBar(
+            content: Text(widget.bookToEdit != null 
+              ? 'Book updated successfully!' 
+              : 'Book posted successfully!'),
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -189,7 +250,7 @@ class _PostBookScreenState extends State<PostBookScreen> {
     return Scaffold(
       backgroundColor: AppTheme.lightBackground,
       appBar: AppBar(
-        title: const Text('Post a Book'),
+        title: Text(widget.bookToEdit != null ? 'Edit Book' : 'Post a Book'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -318,9 +379,9 @@ class _PostBookScreenState extends State<PostBookScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text(
-                        'Post',
-                        style: TextStyle(
+                    : Text(
+                        widget.bookToEdit != null ? 'Update' : 'Post',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),

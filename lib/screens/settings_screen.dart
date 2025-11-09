@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
-import 'profile_screen.dart';
+import 'my_offers_screen.dart';
 import 'received_offers_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool showBackButton;
@@ -45,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.lightBackground,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('Profile'),
         leading: widget.showBackButton
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -56,6 +57,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // User Info Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppTheme.darkBlue,
+                    child: Text(
+                      FirebaseAuth.instance.currentUser?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
+                      style: const TextStyle(fontSize: 24, color: AppTheme.white),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          FirebaseAuth.instance.currentUser?.email ?? '',
+                          style: const TextStyle(color: AppTheme.textLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -124,9 +162,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.person, color: AppTheme.darkBlue),
+                  leading: const Icon(Icons.swap_horiz, color: AppTheme.darkBlue),
                   title: const Text(
-                    'Profile',
+                    'My Offers',
                     style: TextStyle(
                       fontSize: 16,
                       color: AppTheme.textDark,
@@ -136,14 +174,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const ProfileScreen(),
+                        builder: (context) => const MyOffersScreen(),
                       ),
                     );
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.swap_horiz, color: AppTheme.darkBlue),
+                  leading: const Icon(Icons.inbox, color: AppTheme.darkBlue),
                   title: const Text(
                     'Received Offers',
                     style: TextStyle(

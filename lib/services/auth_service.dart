@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -15,26 +16,30 @@ class AuthService {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      UserCredential userCredential;
+      
+      if (kIsWeb) {
+        // Web: Use popup sign-in
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        userCredential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        // Mobile: Use google_sign_in package
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return null;
+        if (googleUser == null) {
+          return null;
+        }
+
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        userCredential = await _auth.signInWithCredential(credential);
       }
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      // Create a new credential
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // Sign in to Firebase with the Google credential
-      final userCredential = await _auth.signInWithCredential(credential);
 
       // Create or update user document in Firestore
       if (userCredential.user != null) {
@@ -49,8 +54,7 @@ class AuthService {
 
       return userCredential;
     } catch (e) {
-      // Error signing in with Google
-      return null;
+      rethrow;
     }
   }
 
@@ -88,54 +92,53 @@ class AuthService {
         password: password,
       );
 
-      // Send email verification
       if (userCredential.user != null) {
-        await userCredential.user!.sendEmailVerification();
-      }
-
-      // Update display name
-      if (userCredential.user != null && displayName.isNotEmpty) {
-        await userCredential.user!.updateDisplayName(displayName);
+        // Update display name first
+        if (displayName.isNotEmpty) {
+          await userCredential.user!.updateDisplayName(displayName);
+        }
+        
+        // Send email verification with custom action code settings
+        final actionCodeSettings = ActionCodeSettings(
+          url: 'https://bookswap-71e05.firebaseapp.com/__/auth/action',
+          handleCodeInApp: false,
+          androidPackageName: 'com.example.bookswap',
+          androidInstallApp: false,
+          androidMinimumVersion: '12',
+        );
+        
+        await userCredential.user!.sendEmailVerification(actionCodeSettings);
+        
+        // Reload user to get updated info
         await userCredential.user!.reload();
-        // Get the updated user
         final updatedUser = _auth.currentUser;
         
         // Create user document in Firestore
         if (updatedUser != null) {
           await _firestore.collection('users').doc(updatedUser.uid).set({
             'email': updatedUser.email,
-            'displayName': displayName.isNotEmpty
-                ? displayName
-                : updatedUser.displayName,
+            'displayName': displayName.isNotEmpty ? displayName : updatedUser.displayName,
             'emailVerified': updatedUser.emailVerified,
             'createdAt': FieldValue.serverTimestamp(),
             'lastLogin': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
         }
-      } else if (userCredential.user != null) {
-        // Create user document in Firestore without display name update
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'email': userCredential.user!.email,
-          'displayName': displayName.isNotEmpty
-              ? displayName
-              : userCredential.user!.displayName,
-          'emailVerified': userCredential.user!.emailVerified,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastLogin': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
       }
 
       return userCredential;
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
-      // Error signing up with email
       return null;
     }
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      // Ignore Google sign out errors if user didn't sign in with Google
+    }
     await _auth.signOut();
   }
 
@@ -148,7 +151,15 @@ class AuthService {
   Future<void> sendEmailVerification() async {
     final user = _auth.currentUser;
     if (user != null && !user.emailVerified) {
-      await user.sendEmailVerification();
+      final actionCodeSettings = ActionCodeSettings(
+        url: 'https://bookswap-71e05.firebaseapp.com/__/auth/action',
+        handleCodeInApp: false,
+        androidPackageName: 'com.example.bookswap',
+        androidInstallApp: false,
+        androidMinimumVersion: '12',
+      );
+      
+      await user.sendEmailVerification(actionCodeSettings);
     }
   }
 

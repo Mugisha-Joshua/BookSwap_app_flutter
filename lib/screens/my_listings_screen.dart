@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book_listing.dart';
 import '../services/book_service.dart';
 import '../theme/app_theme.dart';
+import 'post_book_screen.dart';
 
 class MyListingsScreen extends StatelessWidget {
   final bool showBackButton;
@@ -152,7 +153,36 @@ class MyListingsScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(book.status).withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    book.status.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: _getStatusColor(book.status),
+                                    ),
+                                  ),
+                                ),
                                 const Spacer(),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: AppTheme.darkBlue),
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PostBookScreen(bookToEdit: book),
+                                      ),
+                                    );
+                                  },
+                                ),
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {
@@ -197,6 +227,19 @@ class MyListingsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'swapped':
+        return AppTheme.darkBlue;
+      default:
+        return AppTheme.textLight;
+    }
   }
 }
 

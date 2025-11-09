@@ -36,9 +36,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Error signing in';
+        if (e.toString().contains('popup')) {
+          errorMessage = 'Please allow popups for this site';
+        } else if (e.toString().contains('cancelled')) {
+          errorMessage = 'Sign in cancelled';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error signing in: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );

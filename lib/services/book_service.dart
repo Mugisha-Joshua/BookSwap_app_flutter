@@ -41,5 +41,9 @@ class BookService {
   Future<void> deleteBook(String bookId) async {
     await _firestore.collection('books').doc(bookId).delete();
   }
+
+  Future<void> updateBook(String bookId, BookListing book) async {
+    await _firestore.collection('books').doc(bookId).update(book.toMap());
+  }
 }
 
