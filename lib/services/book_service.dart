@@ -7,11 +7,16 @@ class BookService {
   Stream<List<BookListing>> getBooks() {
     return _firestore
         .collection('books')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookListing.fromMap(doc.id, doc.data()))
-            .toList());
+        .map((snapshot) {
+          final books = snapshot.docs
+              .map((doc) => BookListing.fromMap(doc.id, doc.data()))
+              .where((book) => book.status == 'available')
+              .toList();
+          // Sort by createdAt in memory to avoid composite index requirement
+          books.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return books;
+        });
   }
 
   Future<void> addBook(BookListing book) async {

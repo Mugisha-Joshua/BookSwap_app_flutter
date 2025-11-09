@@ -55,7 +55,31 @@ class _EmailPasswordDialogState extends State<EmailPasswordDialog> {
       }
 
       if (userCredential != null && mounted) {
-        Navigator.of(context).pop(true);
+        if (!_isLogin && userCredential.user != null && !userCredential.user!.emailVerified) {
+          // Show email verification message
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Verify Your Email'),
+                content: const Text(
+                  'We\'ve sent a verification email to your inbox. Please check your email and verify your account before continuing.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop(true);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          Navigator.of(context).pop(true);
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

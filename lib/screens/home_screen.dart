@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'browse_listings_screen.dart';
 import 'my_listings_screen.dart';
+import 'my_offers_screen.dart';
 import 'chats_list_screen.dart';
 import 'post_book_screen.dart';
 import 'settings_screen.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const BrowseListingsScreen(),
     const MyListingsScreen(),
+    const MyOffersScreen(),
     const ChatsListScreen(),
     const SettingsScreen(),
   ];
@@ -60,6 +62,10 @@ class _HomeScreenState extends State<HomeScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.list),
               label: 'My Listings',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.swap_horiz),
+              label: 'My Offers',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat),

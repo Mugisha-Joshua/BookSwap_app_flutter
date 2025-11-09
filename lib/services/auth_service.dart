@@ -88,6 +88,11 @@ class AuthService {
         password: password,
       );
 
+      // Send email verification
+      if (userCredential.user != null) {
+        await userCredential.user!.sendEmailVerification();
+      }
+
       // Update display name
       if (userCredential.user != null && displayName.isNotEmpty) {
         await userCredential.user!.updateDisplayName(displayName);
@@ -102,6 +107,7 @@ class AuthService {
             'displayName': displayName.isNotEmpty
                 ? displayName
                 : updatedUser.displayName,
+            'emailVerified': updatedUser.emailVerified,
             'createdAt': FieldValue.serverTimestamp(),
             'lastLogin': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
@@ -113,6 +119,7 @@ class AuthService {
           'displayName': displayName.isNotEmpty
               ? displayName
               : userCredential.user!.displayName,
+          'emailVerified': userCredential.user!.emailVerified,
           'createdAt': FieldValue.serverTimestamp(),
           'lastLogin': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -136,5 +143,16 @@ class AuthService {
     await _firestore.collection('users').doc(userId).set({
       'name': name,
     }, SetOptions(merge: true));
+  }
+
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  Future<void> reloadUser() async {
+    await _auth.currentUser?.reload();
   }
 }

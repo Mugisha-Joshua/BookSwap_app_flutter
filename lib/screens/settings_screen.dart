@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
+import 'profile_screen.dart';
+import 'received_offers_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool showBackButton;
@@ -119,32 +121,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            child: ListTile(
-              title: const Text(
-                'About',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textDark,
-                ),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('About BookSwap'),
-                    content: const Text(
-                      'BookSwap is a marketplace where students can swap textbooks with each other.',
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.person, color: AppTheme.darkBlue),
+                  title: const Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textDark,
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK'),
-                      ),
-                    ],
                   ),
-                );
-              },
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.swap_horiz, color: AppTheme.darkBlue),
+                  title: const Text(
+                    'Received Offers',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textDark,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ReceivedOffersScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.info_outline, color: AppTheme.darkBlue),
+                  title: const Text(
+                    'About',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.textDark,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('About BookSwap'),
+                        content: const Text(
+                          'BookSwap is a marketplace where students can swap textbooks with each other.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),

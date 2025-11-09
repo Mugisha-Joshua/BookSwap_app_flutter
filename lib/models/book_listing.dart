@@ -10,6 +10,7 @@ class BookListing {
   final String userName;
   final DateTime createdAt;
   final String? imageUrl;
+  final String status; // 'available', 'pending', 'swapped'
 
   BookListing({
     required this.id,
@@ -21,6 +22,7 @@ class BookListing {
     required this.userName,
     required this.createdAt,
     this.imageUrl,
+    this.status = 'available',
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +35,7 @@ class BookListing {
       'userName': userName,
       'createdAt': Timestamp.fromDate(createdAt),
       'imageUrl': imageUrl,
+      'status': status,
     };
   }
 
@@ -48,6 +51,7 @@ class BookListing {
       userName: map['userName'] ?? '',
       createdAt: timestamp.toDate(),
       imageUrl: map['imageUrl'],
+      status: map['status'] ?? 'available',
     );
   }
 
