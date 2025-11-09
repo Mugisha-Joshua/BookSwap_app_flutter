@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'services/auth_service.dart';
 import 'providers/app_state.dart';
 
@@ -52,7 +53,11 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const HomeScreen();
+          final user = snapshot.data;
+          if (user!.emailVerified) {
+            return const HomeScreen();
+          }
+          return const EmailVerificationScreen();
         }
 
         return const WelcomeScreen();

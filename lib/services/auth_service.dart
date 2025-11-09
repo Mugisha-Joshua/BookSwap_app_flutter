@@ -68,6 +68,12 @@ class AuthService {
         password: password,
       );
 
+      // Check email verification
+      if (userCredential.user != null && !userCredential.user!.emailVerified) {
+        // Don't sign out, let AuthWrapper handle verification screen
+        return userCredential;
+      }
+
       // Update user document in Firestore
       if (userCredential.user != null) {
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
@@ -81,7 +87,6 @@ class AuthService {
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
-      // Error signing in with email
       return null;
     }
   }
